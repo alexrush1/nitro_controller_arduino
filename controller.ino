@@ -9,7 +9,11 @@ short cc = 0;
 double gz = 0;
 int minGZ = 67;
 int ready = 0;
+int in_work = 0;
 double coeff = 0;
+int stopper = 0;
+unsigned long alltime = 0; 
+unsigned long start_time = 0;
 unsigned long old_time = 0;
 unsigned long new_time = 0;
 unsigned long counter = 0;
@@ -33,6 +37,15 @@ void setup() {
 }
 
 void loop() {
+  alltime = millis();
+  if (in_work) {
+    if ((alltime - start_time) > 15000) {
+      digitalWrite(RELE_PIN, OFF);
+      stopper = 1;  
+    }
+  } else {
+    start_time = alltime;  
+  }
   //gz = 100;
   digitalWrite(13, ON);
   if (!digitalRead(CALCULATION_METHOD1)) {
@@ -51,12 +64,28 @@ void loop() {
   }
   if (coeff != 0) {
     if (ready) {
-      if ((gz >= minGZ)&&(gz <= 101)) {
-        digitalWrite(RELE_PIN, ON);
+      if ((gz >= minGZ)&&(gz <= 99)) {
+        if (!stopper) {
+          if (in_work) {
+            digitalWrite(RELE_PIN, ON);
+          }
+        }
         //Serial.println("HIGH PERFORMANCE!");
-      } else if ((gz < minGZ-5)||(gz > 102.5)) {
+      } else if ((gz < minGZ-5)) {
         digitalWrite(RELE_PIN, OFF);
+        stopper = 0;
+        in_work = 0;
         //Serial.println("EMERGENCY SHUTDOWN!");
+      } else if ((gz > 102.5)) {
+        digitalWrite(RELE_PIN, OFF);  
+      } else if ((gz >= minGZ)&&(gz <= 99)) {
+        if (!in_work) {
+          if (!stopper) {
+            start_time = millis();
+            in_work = 1;
+            digitalWrite(RELE_PIN, ON);
+          }
+        }  
       }
     }
   }
