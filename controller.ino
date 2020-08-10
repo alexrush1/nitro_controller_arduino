@@ -17,6 +17,7 @@ unsigned long start_time = 0;
 unsigned long old_time = 0;
 unsigned long new_time = 0;
 unsigned long counter = 0;
+unsigned long workTime = 0;
 
 void setup() {
   pinMode(RELE_PIN, OUTPUT);                      //setting rele pin in output mode
@@ -38,8 +39,13 @@ void setup() {
 
 void loop() {
   alltime = millis();
+  if (digitalRead(RELE_PIN)) {
+    workTime = alltime - start_time;
+  } else {
+    workTime = 0;  
+  }
   if (in_work) {
-    if ((alltime - start_time) > 15000) {
+    if (workTime > 15000) {
       digitalWrite(RELE_PIN, OFF);
       stopper = 1;  
     }
@@ -56,29 +62,20 @@ void loop() {
   if ((digitalRead(CALCULATION_METHOD1) && digitalRead(CALCULATION_METHOD2)) == true) {
     coeff = 1;
   }
-  
+  //Serial.print("stopper = ");
+  //Serial.println(stopper);
+  //Serial.print("in_work = ");
+  //Serial.println(in_work);
   if (!digitalRead(HIGH_RPM_MODE)) {
     minGZ = 75;
   } else {
     minGZ = 67;
   }
+
+  
   if (coeff != 0) {
     if (ready) {
       if ((gz >= minGZ)&&(gz <= 99)) {
-        if (!stopper) {
-          if (in_work) {
-            digitalWrite(RELE_PIN, ON);
-          }
-        }
-        //Serial.println("HIGH PERFORMANCE!");
-      } else if ((gz < minGZ-5)) {
-        digitalWrite(RELE_PIN, OFF);
-        stopper = 0;
-        in_work = 0;
-        //Serial.println("EMERGENCY SHUTDOWN!");
-      } else if ((gz > 102.5)) {
-        digitalWrite(RELE_PIN, OFF);  
-      } else if ((gz >= minGZ)&&(gz <= 99)) {
         if (!in_work) {
           if (!stopper) {
             start_time = millis();
@@ -86,10 +83,25 @@ void loop() {
             digitalWrite(RELE_PIN, ON);
           }
         }  
+        //Serial.println("HIGH PERFORMANCE!");
+      } else if ((gz < minGZ-5)) {
+        digitalWrite(RELE_PIN, OFF);
+        stopper = 0;
+        in_work = 0;
+        //workTime = 0;
+        //Serial.println("EMERGENCY SHUTDOWN!");
+      } else if ((gz > 102.5)) {
+        digitalWrite(RELE_PIN, OFF);  
+      } else if ((gz >= minGZ)&&(gz <= 99)) {
+        if (!stopper) {
+          if (in_work) {
+            digitalWrite(RELE_PIN, ON);
+          }
+        }
       }
     }
   }
-  delay(400);
+  //delay(400);
 }
 
 void Gz() {
@@ -99,9 +111,9 @@ void Gz() {
   } else {
     cc++;
   } 
-  if (counter == 15) {
+  if (counter == 60) {
     new_time = millis();
-    gz = ((15.0 * 1000.0)/ (double)((new_time - old_time)* coeff));
+    gz = ((60.0 * 1000.0)/ (double)((new_time - old_time)* coeff));
     old_time = new_time;
     Serial.println(gz);
     counter = 0;
